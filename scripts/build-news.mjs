@@ -158,7 +158,8 @@ async function main() {
     throw new Error('No news headings found on the News page. Has its layout changed?');
   }
 
-  const data = { updated: new Date().toISOString(), source: NEWS_URL, items };
+  // No timestamp in the file, so it only changes (and is only saved) when the news changes.
+  const data = { source: NEWS_URL, items };
   await mkdir(dirname(outPath), { recursive: true });
   await writeFile(outPath, JSON.stringify(data, null, 2) + '\n');
   console.log(`Wrote ${items.length} items to ${outPath}:`);
