@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMIT X-ray Converters</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f8fa;
+    --border: #d6dbe1;
+    --text: #1f2933;
+    --muted: #5f6b7a;
+    --accent: #0b5cad;
+    --warn-bg: #fff4e5;
+    --warn-text: #8a4b00;
+    --err-bg: #fdecec;
+    --err-text: #a12020;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; }
+  p.help { margin: 0 0 14px; color: var(--muted); font-size: 0.9rem; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 0.9rem; }
+  .pair { display: flex; gap: 6px; }
+  input, select {
+    font: inherit;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+    min-width: 0;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .pair input { flex: 1 1 auto; }
+  .pair select { flex: 0 0 auto; }
+  .hkl { display: flex; gap: 6px; align-items: center; }
+  .hkl input { width: 4.2em; text-align: center; }
+  .results { margin-top: 14px; display: grid; gap: 6px 18px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); font-size: 0.92rem; }
+  .results span { color: var(--muted); }
+  .results b { font-variant-numeric: tabular-nums; }
+  .msg { margin-top: 12px; padding: 8px 10px; border-radius: 6px; font-size: 0.88rem; display: none; }
+  .msg.warn { display: block; background: var(--warn-bg); color: var(--warn-text); }
+  .msg.err { display: block; background: var(--err-bg); color: var(--err-text); }
+  .foot { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
+  button {
+    font: inherit; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--border); background: #fff; color: var(--text); cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<section id="conv">
+  <h2>Frequency – Wavelength – Energy converter</h2>
+  <p class="help">Type a value in any box; the others update as you type. Change a unit to convert the value shown. Exponential notation such as <code>1.5e-10</code> is accepted.</p>
+  <div class="grid">
+    <label class="field">Frequency
+      <span class="pair">
+        <input id="f" type="text" inputmode="decimal" autocomplete="off" aria-label="Frequency value">
+        <select id="fu" aria-label="Frequency unit">
+          <option value="Hz">Hz</option>
+          <option value="MHz">MHz</option>
+          <option value="cm-1">cm⁻¹</option>
+          <option value="rad/s">rad s⁻¹</option>
+        </select>
+      </span>
+    </label>
+    <label class="field">Wavelength
+      <span class="pair">
+        <input id="w" type="text" inputmode="decimal" autocomplete="off" aria-label="Wavelength value">
+        <select id="wu" aria-label="Wavelength unit">
+          <option value="A" selected>Å</option>
+          <option value="nm">nm</option>
+          <option value="um">µm</option>
+          <option value="m">m</option>
+        </select>
+      </span>
+    </label>
+    <label class="field">Energy
+      <span class="pair">
+        <input id="e" type="text" inputmode="decimal" autocomplete="off" aria-label="Energy value">
+        <select id="eu" aria-label="Energy unit">
+          <option value="keV" selected>keV</option>
+          <option value="eV">eV</option>
+          <option value="kJ/mol">kJ/mol</option>
+          <option value="kcal/mol">kcal/mol</option>
+          <option value="Eh">hartree</option>
+        </select>
+      </span>
+    </label>
+  </div>
+  <div id="convMsg" class="msg" role="status"></div>
+  <div style="margin-top:12px"><button type="button" id="convClear">Clear</button></div>
+</section>
+
+<section id="bragg">
+  <h2>Energy ⇄ Bragg angle for silicon</h2>
+  <p class="help">Choose a reflection, then enter either the X-ray energy or the Bragg angle; the other updates as you type.</p>
+  <div class="grid">
+    <label class="field">Reflection
+      <select id="preset" aria-label="Reflection preset">
+        <option value="1,1,1" selected>Si(111)</option>
+        <option value="2,2,0">Si(220)</option>
+        <option value="3,1,1">Si(311)</option>
+        <option value="4,0,0">Si(400)</option>
+        <option value="3,3,1">Si(331)</option>
+        <option value="4,2,2">Si(422)</option>
+        <option value="3,3,3">Si(333)</option>
+        <option value="4,4,0">Si(440)</option>
+        <option value="custom">Custom (h k l)</option>
+      </select>
+    </label>
+    <label class="field">Miller indices (h k l)
+      <span class="hkl">
+        <input id="h" type="number" step="1" value="1" aria-label="h">
+        <input id="k" type="number" step="1" value="1" aria-label="k">
+        <input id="l" type="number" step="1" value="1" aria-label="l">
+      </span>
+    </label>
+    <label class="field">Energy (keV)
+      <input id="be" type="text" inputmode="decimal" autocomplete="off" aria-label="Energy in keV">
+    </label>
+    <label class="field">Bragg angle θ (degrees)
+      <input id="bt" type="text" inputmode="decimal" autocomplete="off" aria-label="Bragg angle in degrees">
+    </label>
+  </div>
+  <div class="results" aria-live="polite">
+    <div><span>d-spacing: </span><b id="rd">–</b></div>
+    <div><span>Wavelength: </span><b id="rw">–</b></div>
+    <div><span>Scattering angle 2θ: </span><b id="r2t">–</b></div>
+  </div>
+  <div id="braggMsg" class="msg" role="status"></div>
+  <p class="foot">Silicon lattice parameter a = 5.431020511 Å (CODATA 2018, 22.5 °C, vacuum); d = a / √(h² + k² + l²); λ = 2d sin θ.</p>
+</section>
+
+<script>
+(function () {
+  // Exact SI constants (CODATA 2018)
+  var h = 6.62607015e-34;        // J s
+  var c = 299792458;             // m/s
+  var qe = 1.602176634e-19;      // J per eV
+  var NA = 6.02214076e23;        // 1/mol
+  var HC_eV_m = h * c / qe;      // eV·m  (≈1.23984198e-6)
+  var HC_keV_A = HC_eV_m * 1e10 / 1e3; // keV·Å (≈12.3984198)
+  var EH_eV = 27.211386245988;   // hartree in eV
+  var A_SI = 5.431020511;        // Å
+
+  function parse(s) {
+    if (s == null) return NaN;
+    s = String(s).replace(/[,\s]/g, '');
+    if (s === '' || !/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) return NaN;
+    return parseFloat(s);
+  }
+  function fmt(x) {
+    if (!isFinite(x)) return '';
+    var a = Math.abs(x);
+    if (a !== 0 && (a >= 1e6 || a < 1e-3)) {
+      return x.toExponential(6).replace(/\.?0+e/, 'e');
+    }
+    var s = x.toPrecision(8);
+    if (s.indexOf('e') === -1 && s.indexOf('.') !== -1) s = s.replace(/\.?0+$/, '');
+    return s;
+  }
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- Frequency / Wavelength / Energy ----------
+  // Canonical quantity: photon energy in eV.
+  var eV = null;
+
+  var toEV = {
+    f: function (v, u) {
+      var hz = u === 'Hz' ? v : u === 'MHz' ? v * 1e6 : u === 'cm-1' ? v * 100 * c : v / (2 * Math.PI);
+      return hz * h / qe;
+    },
+    w: function (v, u) {
+      var m = u === 'm' ? v : u === 'nm' ? v * 1e-9 : u === 'um' ? v * 1e-6 : v * 1e-10;
+      return HC_eV_m / m;
+    },
+    e: function (v, u) {
+      if (u === 'eV') return v;
+      if (u === 'keV') return v * 1e3;
+      if (u === 'kJ/mol') return v * 1e3 / (qe * NA);
+      if (u === 'kcal/mol') return v * 4184 / (qe * NA);
+      return v * EH_eV; // hartree
+    }
+  };
+  var fromEV = {
+    f: function (ev, u) {
+      var hz = ev * qe / h;
+      return u === 'Hz' ? hz : u === 'MHz' ? hz / 1e6 : u === 'cm-1' ? hz / c / 100 : hz * 2 * Math.PI;
+    },
+    w: function (ev, u) {
+      var m = HC_eV_m / ev;
+      return u === 'm' ? m : u === 'nm' ? m * 1e9 : u === 'um' ? m * 1e6 : m * 1e10;
+    },
+    e: function (ev, u) {
+      if (u === 'eV') return ev;
+      if (u === 'keV') return ev / 1e3;
+      if (u === 'kJ/mol') return ev * qe * NA / 1e3;
+      if (u === 'kcal/mol') return ev * qe * NA / 4184;
+      return ev / EH_eV;
+    }
+  };
+
+  function convMsg(text) {
+    var m = $('convMsg');
+    m.textContent = text || '';
+    m.className = text ? 'msg err' : 'msg';
+  }
+  function renderConv(skip) {
+    ['f', 'w', 'e'].forEach(function (k) {
+      if (k === skip) return;
+      $(k).value = eV == null ? '' : fmt(fromEV[k](eV, $(k + 'u').value));
+    });
+  }
+  ['f', 'w', 'e'].forEach(function (k) {
+    $(k).addEventListener('input', function () {
+      var raw = $(k).value.trim();
+      if (raw === '') { eV = null; convMsg(''); renderConv(k); return; }
+      var v = parse(raw);
+      if (!isFinite(v)) { convMsg('Please enter a number (for example 12.4 or 1.5e-10).'); return; }
+      if (v <= 0) { convMsg('Please enter a value greater than zero.'); return; }
+      convMsg('');
+      eV = toEV[k](v, $(k + 'u').value);
+      renderConv(k);
+    });
+    $(k + 'u').addEventListener('change', function () { renderConv(null); });
+  });
+  $('convClear').addEventListener('click', function () { eV = null; convMsg(''); renderConv(null); });
+
+  // ---------- Bragg angle for silicon ----------
+  var lastBragg = 'be';
+
+  function hkl() {
+    return [parseInt($('h').value, 10), parseInt($('k').value, 10), parseInt($('l').value, 10)];
+  }
+  function braggMsg(text, kind) {
+    var m = $('braggMsg');
+    m.textContent = text || '';
+    m.className = text ? 'msg ' + kind : 'msg';
+  }
+  function forbiddenNote(H, K, L) {
+    var all = [H, K, L];
+    var odd = all.every(function (n) { return Math.abs(n) % 2 === 1; });
+    var even = all.every(function (n) { return n % 2 === 0; });
+    if (odd) return '';
+    if (even && (H + K + L) % 4 === 0) return '';
+    return 'Note: (' + H + ' ' + K + ' ' + L + ') is a forbidden reflection for silicon (diamond structure), so it gives no diffracted beam. Values are shown for reference only.';
+  }
+  function clearResults() { $('rd').textContent = '–'; $('rw').textContent = '–'; $('r2t').textContent = '–'; }
+
+  function updateBragg(src) {
+    if (src) lastBragg = src;
+    var ix = hkl();
+    var H = ix[0], K = ix[1], L = ix[2];
+    if (![H, K, L].every(isFinite)) { clearResults(); braggMsg('Please enter whole numbers for h, k and l.', 'err'); return; }
+    var s2 = H * H + K * K + L * L;
+    if (s2 === 0) { clearResults(); braggMsg('h, k and l cannot all be zero.', 'err'); return; }
+    var d = A_SI / Math.sqrt(s2);
+    $('rd').textContent = fmt(d) + ' Å';
+    var note = forbiddenNote(H, K, L);
+
+    var other = lastBragg === 'be' ? 'bt' : 'be';
+    var raw = $(lastBragg).value.trim();
+    if (raw === '') {
+      $(other).value = ''; $('rw').textContent = '–'; $('r2t').textContent = '–';
+      braggMsg(note, 'warn'); return;
+    }
+    var v = parse(raw);
+    if (!isFinite(v)) { braggMsg('Please enter a number.', 'err'); return; }
+
+    var lam, theta;
+    if (lastBragg === 'be') {
+      if (v <= 0) { braggMsg('Energy must be greater than zero.', 'err'); return; }
+      lam = HC_keV_A / v;
+      var s = lam / (2 * d);
+      if (s > 1) {
+        $('bt').value = ''; $('rw').textContent = fmt(lam) + ' Å'; $('r2t').textContent = '–';
+        var emin = HC_keV_A / (2 * d);
+        braggMsg('No Bragg reflection: below ' + fmt(emin) + ' keV the wavelength is longer than 2d for this reflection.', 'err');
+        return;
+      }
+      theta = Math.asin(s) * 180 / Math.PI;
+      $('bt').value = fmt(theta);
+    } else {
+      if (v <= 0 || v >= 90) { braggMsg('Bragg angle must be between 0 and 90 degrees.', 'err'); return; }
+      theta = v;
+      lam = 2 * d * Math.sin(theta * Math.PI / 180);
+      $('be').value = fmt(HC_keV_A / lam);
+    }
+    $('rw').textContent = fmt(lam) + ' Å';
+    $('r2t').textContent = fmt(2 * theta) + '°';
+    braggMsg(note, 'warn');
+  }
+
+  $('preset').addEventListener('change', function () {
+    var p = $('preset').value;
+    if (p !== 'custom') {
+      var a = p.split(',');
+      $('h').value = a[0]; $('k').value = a[1]; $('l').value = a[2];
+    }
+    updateBragg(null);
+  });
+  ['h', 'k', 'l'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      var cur = hkl().join(',');
+      var match = Array.prototype.some.call($('preset').options, function (o) { return o.value === cur; });
+      $('preset').value = match ? cur : 'custom';
+      updateBragg(null);
+    });
+  });
+  $('be').addEventListener('input', function () { updateBragg('be'); });
+  $('bt').addEventListener('input', function () { updateBragg('bt'); });
+
+  updateBragg(null);
+})();
+</script>
+</body>
+</html>

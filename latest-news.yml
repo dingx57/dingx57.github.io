@@ -1,0 +1,55 @@
+name: Update latest news and publish site
+
+on:
+  # Every 3 hours (times are UTC). Change or remove as you like.
+  schedule:
+    - cron: "17 */3 * * *"
+  # Adds a "Run workflow" button on the Actions tab, for right after you post news.
+  workflow_dispatch:
+  # Republish whenever you change files in the repository (e.g. the converters).
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install HTML parser
+        run: npm install --no-save --no-package-lock cheerio@1.0.0
+
+      - name: Copy site files
+        run: rsync -a --exclude node_modules --exclude .git --exclude .github --exclude scripts ./ _site/
+
+      - name: Build news.json from the News page
+        run: node scripts/build-news.mjs _site/news.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

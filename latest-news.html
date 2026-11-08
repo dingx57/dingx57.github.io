@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Latest News</title>
+<style>
+  :root {
+    --text: #172b4d;
+    --link: #0c66e4;
+    --muted: #626f86;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --text: #dee4ea; --link: #579dff; --muted: #9fadbc; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: transparent; }
+  body {
+    padding: 2px 2px 8px;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  ul { margin: 0; padding-left: 1.25em; }
+  li { margin: 0 0 6px; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover, a:focus { text-decoration: underline; }
+  .date { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
+  .status { color: var(--muted); font-size: 0.9em; margin: 0; }
+</style>
+</head>
+<body>
+<ul id="list" aria-label="Latest news"></ul>
+<p id="status" class="status" role="status">Loading latest news…</p>
+
+<script>
+(function () {
+  // ---- Settings -------------------------------------------------------------
+  var NEWS_PAGE = 'https://bmit.scroll.site/biomedical-imaging-and-therapy-facility/news';
+  var PREFIX = 'News | ';   // Added before titles that don't already contain " | "
+  var SHOW_DATES = false;   // true shows "Posted on" dates after each title
+  var LINK_TARGET = '_top'; // '_top' opens links in the main window; use '_blank' for a new tab
+  // ---------------------------------------------------------------------------
+
+  var list = document.getElementById('list');
+  var status = document.getElementById('status');
+
+  function fallback() {
+    list.innerHTML = '';
+    status.innerHTML = '';
+    var a = document.createElement('a');
+    a.href = NEWS_PAGE;
+    a.target = LINK_TARGET;
+    a.textContent = 'See the latest news »';
+    status.appendChild(a);
+  }
+
+  fetch('news.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (data) {
+      var items = (data && data.items) || [];
+      if (!items.length) return fallback();
+      items.forEach(function (it) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = it.url;
+        a.target = LINK_TARGET;
+        a.textContent = (it.title.indexOf(' | ') === -1 ? PREFIX : '') + it.title;
+        li.appendChild(a);
+        if (SHOW_DATES && it.date) {
+          var d = document.createElement('span');
+          d.className = 'date';
+          d.textContent = ' · ' + it.date;
+          li.appendChild(d);
+        }
+        list.appendChild(li);
+      });
+      status.textContent = '';
+      status.style.display = 'none';
+    })
+    .catch(fallback);
+})();
+</script>
+</body>
+</html>
