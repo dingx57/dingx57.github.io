@@ -38,6 +38,8 @@
 (function () {
   // ---- Settings -------------------------------------------------------------
   var NEWS_PAGE = 'https://bmit.scroll.site/biomedical-imaging-and-therapy-facility/news';
+  // Where the GitHub job saves the list (read straight from the repository).
+  var DATA_URL = 'https://raw.githubusercontent.com/dingx57/dingx57.github.io/main/news.json';
   var PREFIX = 'News | ';   // Added before titles that don't already contain " | "
   var SHOW_DATES = false;   // true shows "Posted on" dates after each title
   var LINK_TARGET = '_top'; // '_top' opens links in the main window; use '_blank' for a new tab
@@ -56,7 +58,7 @@
     status.appendChild(a);
   }
 
-  fetch('news.json?t=' + Date.now(), { cache: 'no-store' })
+  fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
       var items = (data && data.items) || [];
