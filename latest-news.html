@@ -10,12 +10,12 @@
 <style>
   :root {
     --text: #000c34;
-    --link: #357de8;
+    --link: #669ef1;
     --muted: #ababab;
+    --bullet: #000c34;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --text: #e3e5e8; --link: #669ef1; --muted: #ababab; }
-    li::marker { color: #e3e5e8; }
+    :root { --text: #e3e5e8; --link: #357de8; --muted: #ababab; --bullet: #e3e5e8; }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: transparent; }
@@ -28,7 +28,7 @@
   }
   ul { margin: 0; padding-left: 1.25em; }
   li { margin: 0 0 6px; }
-  li::marker { color: #000c34; }
+  li::marker { color: var(--bullet); }
   a { color: var(--link); text-decoration: none; }
   a:hover, a:focus { text-decoration: underline; }
   .date { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
