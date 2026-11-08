@@ -9,12 +9,13 @@
 <title>Latest News</title>
 <style>
   :root {
-    --text: #172b4d;
-    --link: #0c66e4;
-    --muted: #626f86;
+    --text: #000c34;
+    --link: #357de8;
+    --muted: #ababab;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --text: #dee4ea; --link: #579dff; --muted: #9fadbc; }
+    :root { --text: #e3e5e8; --link: #669ef1; --muted: #ababab; }
+    li::marker { color: #e3e5e8; }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: transparent; }
@@ -27,7 +28,7 @@
   }
   ul { margin: 0; padding-left: 1.25em; }
   li { margin: 0 0 6px; }
-  li::marker { color: #000000; }
+  li::marker { color: #000c34; }
   a { color: var(--link); text-decoration: none; }
   a:hover, a:focus { text-decoration: underline; }
   .date { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
