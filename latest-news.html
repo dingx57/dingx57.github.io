@@ -10,12 +10,12 @@
 <style>
   :root {
     --text: #000c34;
-    --link: #669ef1;
+    --link: #357de8;
     --muted: #ababab;
-    --bullet: #000c34;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --text: #e3e5e8; --link: #357de8; --muted: #ababab; --bullet: #e3e5e8; }
+    :root { --text: #e3e5e8; --link: #669ef1; --muted: #ababab; }
+    li::marker { color: #e3e5e8; }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: transparent; }
@@ -28,7 +28,7 @@
   }
   ul { margin: 0; padding-left: 1.25em; }
   li { margin: 0 0 6px; }
-  li::marker { color: var(--bullet); }
+  li::marker { color: #000c34; }
   a { color: var(--link); text-decoration: none; }
   a:hover, a:focus { text-decoration: underline; }
   .date { color: var(--muted); font-size: 0.85em; white-space: nowrap; }
@@ -47,6 +47,7 @@
   var DATA_URL = 'https://raw.githubusercontent.com/dingx57/dingx57.github.io/main/news.json';
   var PREFIX = 'News | ';   // Added before titles that don't already contain " | "
   var SHOW_DATES = false;   // true shows "Posted on" dates after each title
+  var SHOW_ITEMS = 5;      // How many items to list (news.json holds up to 10)
   var LINK_TARGET = '_top'; // '_top' opens links in the main window; use '_blank' for a new tab
   // ---------------------------------------------------------------------------
 
@@ -66,7 +67,7 @@
   fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
-      var items = (data && data.items) || [];
+      var items = ((data && data.items) || []).slice(0, SHOW_ITEMS);
       if (!items.length) return fallback();
       items.forEach(function (it) {
         var li = document.createElement('li');

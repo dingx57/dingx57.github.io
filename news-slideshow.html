@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<title>News Slideshow</title>
+<style>
+  :root {
+    --text: #000c34;
+    --link: #357de8;
+    --muted: #6b7280;
+    --panel: #f3f5f8;
+    --dot: #c7ccd4;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: transparent; }
+  body {
+    color: var(--text);
+    font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  /* The slideshow fills whatever height the iframe gives it. */
+  .show { height: 100%; display: flex; flex-direction: column; outline: none; }
+  .stage {
+    position: relative; flex: 1 1 auto; min-height: 120px;
+    border-radius: var(--radius); overflow: hidden; background: var(--panel);
+  }
+  .slide {
+    position: absolute; inset: 0; opacity: 0; visibility: hidden;
+    transition: opacity .5s ease, visibility 0s linear .5s;
+  }
+  .slide.active { opacity: 1; visibility: visible; transition: opacity .5s ease; }
+  .slide a { display: block; width: 100%; height: 100%; text-decoration: none; }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide .noimg {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    padding: 16px 56px; text-align: center; font-weight: 600; font-size: 1.3em; letter-spacing: .04em; color: var(--dot);
+  }
+
+  .arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(255,255,255,.85); color: var(--text);
+    font: 600 20px/36px "Montserrat", sans-serif; text-align: center; padding: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2); opacity: .85;
+  }
+  .arrow:hover, .arrow:focus-visible { opacity: 1; outline: 2px solid var(--link); }
+  .prev { left: 8px; }
+  .next { right: 8px; }
+
+  .caption { flex: 0 0 auto; padding: 10px 2px 0; }
+  .title {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    font-weight: 600; color: var(--link); text-decoration: none; min-height: 2.8em;
+  }
+  .title:hover, .title:focus { text-decoration: underline; }
+  .meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .date { color: var(--muted); font-size: .85em; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+    background: var(--dot);
+  }
+  .dot[aria-current="true"] { background: var(--text); }
+  .dot:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+  .status { color: var(--muted); font-size: .9em; margin: 0; padding: 8px 2px; }
+  .status a { color: var(--link); }
+</style>
+</head>
+<body>
+<div class="show" id="show" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Recent news" hidden>
+  <div class="stage" id="stage">
+    <button class="arrow prev" id="prev" type="button" aria-label="Previous story">‹</button>
+    <button class="arrow next" id="next" type="button" aria-label="Next story">›</button>
+  </div>
+  <div class="caption">
+    <a class="title" id="title" href="#"></a>
+    <div class="meta">
+      <span class="date" id="date"></span>
+      <div class="dots" id="dots" role="group" aria-label="Choose a story"></div>
+    </div>
+  </div>
+</div>
+<p class="status" id="status" role="status">Loading news…</p>
+
+<script>
+(function () {
+  // ---- Settings -------------------------------------------------------------
+  var NEWS_PAGE = 'https://bmit.scroll.site/biomedical-imaging-and-therapy-facility/news';
+  var DATA_URL = 'https://raw.githubusercontent.com/dingx57/dingx57.github.io/main/news.json';
+  var SHOW_ITEMS = 10;       // How many stories to rotate through
+  var SECONDS_PER_SLIDE = 6; // Set to 0 to turn off automatic advancing
+  var LINK_TARGET = '_top';  // '_top' opens links in the main window; '_blank' for a new tab
+  // ---------------------------------------------------------------------------
+
+  var show = document.getElementById('show');
+  var stage = document.getElementById('stage');
+  var titleEl = document.getElementById('title');
+  var dateEl = document.getElementById('date');
+  var dotsEl = document.getElementById('dots');
+  var status = document.getElementById('status');
+  var items = [], slides = [], dots = [], current = 0, timer = null, paused = false;
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function fallback() {
+    show.hidden = true;
+    status.hidden = false;
+    status.innerHTML = '';
+    var a = document.createElement('a');
+    a.href = NEWS_PAGE; a.target = LINK_TARGET; a.textContent = 'See the latest news »';
+    status.appendChild(a);
+  }
+
+  function go(i) {
+    if (!items.length) return;
+    current = (i + items.length) % items.length;
+    slides.forEach(function (s, n) {
+      s.classList.toggle('active', n === current);
+      s.setAttribute('aria-hidden', n === current ? 'false' : 'true');
+      var link = s.querySelector('a');
+      if (link) link.tabIndex = n === current ? 0 : -1;
+    });
+    dots.forEach(function (d, n) { d.setAttribute('aria-current', n === current ? 'true' : 'false'); });
+    var it = items[current];
+    titleEl.textContent = it.title;
+    titleEl.href = it.url;
+    dateEl.textContent = it.date ? 'Posted on ' + it.date : '';
+    restart();
+  }
+
+  function restart() {
+    clearInterval(timer);
+    if (SECONDS_PER_SLIDE > 0 && !reduceMotion && !paused && items.length > 1) {
+      timer = setInterval(function () { go(current + 1); }, SECONDS_PER_SLIDE * 1000);
+    }
+  }
+  function pause() { paused = true; clearInterval(timer); }
+  function resume() { paused = false; restart(); }
+
+  function build(list) {
+    items = list;
+    items.forEach(function (it, n) {
+      var slide = document.createElement('div');
+      slide.className = 'slide';
+      slide.setAttribute('role', 'group');
+      slide.setAttribute('aria-roledescription', 'slide');
+      slide.setAttribute('aria-label', (n + 1) + ' of ' + items.length);
+      var a = document.createElement('a');
+      a.href = it.url; a.target = LINK_TARGET;
+      a.setAttribute('aria-label', it.title);
+      if (it.image) {
+        var img = document.createElement('img');
+        img.src = it.image; img.alt = '';
+        img.loading = n === 0 ? 'eager' : 'lazy';
+        img.onerror = function () { a.innerHTML = ''; a.appendChild(noImage()); };
+        a.appendChild(img);
+      } else {
+        a.appendChild(noImage());
+      }
+      slide.appendChild(a);
+      stage.insertBefore(slide, document.getElementById('prev'));
+      slides.push(slide);
+
+      var dot = document.createElement('button');
+      dot.type = 'button'; dot.className = 'dot';
+      dot.setAttribute('aria-label', 'Story ' + (n + 1) + ': ' + it.title);
+      dot.addEventListener('click', function () { go(n); });
+      dotsEl.appendChild(dot);
+      dots.push(dot);
+    });
+    titleEl.target = LINK_TARGET;
+    if (items.length < 2) {
+      document.getElementById('prev').hidden = true;
+      document.getElementById('next').hidden = true;
+      dotsEl.hidden = true;
+    }
+    show.hidden = false;
+    status.hidden = true;
+    go(0);
+  }
+
+  function noImage() {
+    var d = document.createElement('div');
+    d.className = 'noimg'; d.textContent = 'BMIT News';
+    return d;
+  }
+
+  document.getElementById('prev').addEventListener('click', function () { go(current - 1); });
+  document.getElementById('next').addEventListener('click', function () { go(current + 1); });
+  show.addEventListener('mouseenter', pause);
+  show.addEventListener('mouseleave', resume);
+  show.addEventListener('focusin', pause);
+  show.addEventListener('focusout', function (e) { if (!show.contains(e.relatedTarget)) resume(); });
+  show.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { go(current - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { go(current + 1); e.preventDefault(); }
+  });
+  // Swipe on touch screens
+  var startX = null;
+  stage.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; pause(); }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (startX === null) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 40) go(current + (dx < 0 ? 1 : -1));
+    startX = null; resume();
+  });
+
+  fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (data) {
+      var list = ((data && data.items) || []).slice(0, SHOW_ITEMS);
+      if (!list.length) return fallback();
+      build(list);
+    })
+    .catch(fallback);
+})();
+</script>
+</body>
+</html>
