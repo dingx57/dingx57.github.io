@@ -3,7 +3,7 @@ name: Update latest news
 on:
   # Every 3 hours (times are UTC). Change or remove as you like.
   schedule:
-    - cron: "17 */24 * * *"
+    - cron: "17 12 * * *"
   # Adds a "Run workflow" button on the Actions tab, for right after you post news.
   workflow_dispatch:
 
