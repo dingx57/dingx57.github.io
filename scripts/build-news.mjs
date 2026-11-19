@@ -15,7 +15,7 @@ import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 // ---- Settings you may want to change ---------------------------------------
-const NEWS_URL = 'https://bmit.scroll.site/biomedical-imaging-and-therapy-facility/news';
+const NEWS_URL = 'https://bmit.lightsource.ca/biomedical-imaging-and-therapy-facility/news';
 const MAX_ITEMS = 10; // latest-news.html shows the first 5; news-slideshow.html shows all 10
 // Heading level used for individual articles on the News page.
 // If none are found at this level, the script falls back to H2 headings
